@@ -13,7 +13,6 @@ class NONE_MODULE(EveryBot.Module.Module):
 
         @self.bot.message_handler(commands=['NONE'])
         def NONE(message: telebot.types.Message):
-            self.bot.send_message(chat_id=message.chat.id, text='⤄')
             self.bot.delete_message(message_id=message.id, chat_id=message.chat.id)
 
     def help(self):
