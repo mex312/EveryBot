@@ -25,14 +25,13 @@ for i in range(0, dirs.__len__()):
 for module in modules:
     print(f"Module {module.name} initialized with commands: {None}")
 
+
 @core.bot.message_handler(commands=['help'])
 def sendHelp(message):
     reply = "There's the commands you can use:"
     for module in modules:
         reply += f"\n{module.help()}"
     core.bot.reply_to(message, reply)
-
-
 
 
 core.bot.infinity_polling()
