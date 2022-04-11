@@ -36,7 +36,7 @@ def sendHelp(message: telebot.types.Message):
     reply = "There's the commands you can use:"
     for module in modules:
         reply += f"\n{module.help()} from {module.name}"
-    core.bot.delete_message(message_id=message.id, chat_id=message.chat.id)
+    core.DeleteMessage(message)
     core.bot.send_message(chat_id=message.chat.id, text=reply)
 
 
