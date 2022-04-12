@@ -6,7 +6,7 @@ class Unit:
 
 
 class Core(Unit):
-    modulesList: [Unit]
+    modulesList: [Unit] = []
     bot = telebot.TeleBot("NO_TOKEN")
 
     def __init__(self, botToken: str):
