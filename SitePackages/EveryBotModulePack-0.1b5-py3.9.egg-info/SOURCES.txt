@@ -1,0 +1,9 @@
+setup.cfg
+setup.py
+EveryBotModulePack.egg-info/PKG-INFO
+EveryBotModulePack.egg-info/SOURCES.txt
+EveryBotModulePack.egg-info/dependency_links.txt
+EveryBotModulePack.egg-info/requires.txt
+EveryBotModulePack.egg-info/top_level.txt
+every_bot/__init__.py
+every_bot/types.py

@@ -1,0 +1,9 @@
+..\every_bot\__init__.py
+..\every_bot\__pycache__\__init__.cpython-39.pyc
+..\every_bot\__pycache__\types.cpython-39.pyc
+..\every_bot\types.py
+PKG-INFO
+SOURCES.txt
+dependency_links.txt
+requires.txt
+top_level.txt
