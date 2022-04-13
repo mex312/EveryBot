@@ -19,13 +19,47 @@ bot.parse_mode = None
 modules: [Module] = []
 
 
-@bot.message_handler(commands=['help'])
-def sendHelp(message: telebot.types.Message):
-    reply = "There's the commands you can use:"
-    for module in modules:
-        reply += f"\n{module.help()} from {module.name}"
-    core.delete_message(message)
-    core.bot.send_message(chat_id=message.chat.id, text=reply)
+@bot.message_handler()
+def handle(message: telebot.types.Message):
+    splitMessage = message.text.split(' ')
+
+    if message.text[0] == '@':
+        moduleName = splitMessage[0].removeprefix('@')
+
+        for module in modules:
+            if module.name.lower() == moduleName.lower():
+                if len(splitMessage) >= 2:
+                    if splitMessage[1] == "/help":
+                        if len(splitMessage) >= 3:
+                            core.send_message(message, module.help(splitMessage[2]))
+                        else:
+                            core.send_message(message, module.help())
+                    else:
+                        message.text = message.text.removeprefix(f"@{moduleName} ")
+                        module.handle_message(message)
+                break
+
+    elif splitMessage[0] == "/help":
+
+        reply: str = ""
+
+        if (len(splitMessage) >= 2) and (splitMessage[1][0] == '/'):
+            for module in modules:
+                if module.help(splitMessage[1])[0] != '!':
+                    reply += f"from {module.name}: {module.help(splitMessage[1])}\n"
+        else:
+            for module in modules:
+                reply += f"@{module.name} /help\n"
+
+        reply.removesuffix('\n')
+        if reply != "":
+            core.send_message(message, reply)
+        else:
+            core.send_message(message, "Can't find help for this command")
+
+    else:
+        for module in modules:
+            module.handle_message(message)
 
 
 for file in fullPaths:

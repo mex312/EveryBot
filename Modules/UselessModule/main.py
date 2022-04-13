@@ -2,8 +2,8 @@ import telebot
 from every_bot import Module, Core
 
 
-class UselessModule(Module):
-    name = 'UselessModule'
+class MathMod(Module):
+    name = 'MathMod'
     bot: telebot.TeleBot
 
     def __init__(self, core: Core):
@@ -11,22 +11,50 @@ class UselessModule(Module):
 
         self.bot = self.core.bot
 
-        @self.bot.message_handler(commands=['hello'])
-        def hello(message: telebot.types.Message):
-            core.delete_message(message)
-            self.bot.send_message(chat_id=message.chat.id, text="Hello!")
+    def handle_message(self, message: telebot.types.Message):
+        splitMessage = message.text.split(' ')
 
-        @self.bot.message_handler()
-        def repeater(message: telebot.types.Message):
-            if message.text[0] != '/':
-                core.delete_message(message)
-                self.bot.send_message(chat_id=message.chat.id, text=message.text)
+        if splitMessage[0] == "/hello":
+            self.core.send_message(message, "Hello!")
 
-    """Bot's core will call it when user type /help"""
-    """It will merge like '[yourReturn] from [UselessModule]' """
-    def help(self):
-        return '/hello'
+        elif splitMessage[0] == "/summ":
+            if len(splitMessage) < 3:
+                self.core.send_message(message, self.core.throw_exception_too_few_args(2, len(splitMessage) - 1, self.name, "/summ"))
+                return
+            if not(self.core.is_arg_equals_type(splitMessage[1], float)):
+                self.core.send_message(message, self.core.throw_exception_wrong_type(float, splitMessage[1], self.name, "/summ"))
+            if not(self.core.is_arg_equals_type(splitMessage[2], float)):
+                self.core.send_message(message, self.core.throw_exception_wrong_type(float, splitMessage[2], self.name, "/summ"))
+            self.core.send_message(message, f"The answer is {float(splitMessage[1]) + float(splitMessage[2])}")
+
+        elif splitMessage[0] == "/subt":
+            if len(splitMessage) < 3:
+                self.core.send_message(message, self.core.throw_exception_too_few_args(2, len(splitMessage) - 1, self.name, "/subt"))
+                return
+            if not(self.core.is_arg_equals_type(splitMessage[1], float)):
+                self.core.send_message(message, self.core.throw_exception_wrong_type(float, splitMessage[1], self.name, "/subt"))
+                return
+            if not(self.core.is_arg_equals_type(splitMessage[2], float)):
+                self.core.send_message(message, self.core.throw_exception_wrong_type(float, splitMessage[2], self.name, "/subt"))
+                return
+            self.core.send_message(message, f"The answer is {float(splitMessage[1]) - float(splitMessage[2])}")
+
+    def help(self, command: str = "") -> str:
+        if command == "":
+            return "/hello, /summ, /subt"
+
+        elif command == "/hello":
+            return "/hello\nIt will say hello to you"
+
+        elif command == "/summ":
+            return "/summ [float] [float]\nIt will summ two numbers for you"
+
+        elif command == "/subt":
+            return "/subt [float] [float]\nIt will subtract two numbers for you"
+
+        else:
+            return "!I don't have command like this"
 
 
 def get_module(core):
-    return UselessModule(core)
+    return MathMod(core)
