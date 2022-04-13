@@ -70,8 +70,7 @@ for i in range(0, dirs.__len__()):
     modules += [importlib.import_module(f'Modules.{dirs[i]}.main').get_module(core)]
 
 for module in modules:
-    print(f"Module {module.name} initialized with commands: {None}")
-
+    print(f"Module {module.name} initialized with commands: {module.help('')}")
 
 
 
