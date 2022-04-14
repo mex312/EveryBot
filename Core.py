@@ -19,6 +19,10 @@ bot.parse_mode = None
 modules: [Module] = []
 
 
+coreModule = Module(core)
+coreModule.name = "Core"
+
+
 @bot.message_handler()
 def handle(message: telebot.types.Message):
     splitMessage = message.text.split(' ')
@@ -30,10 +34,17 @@ def handle(message: telebot.types.Message):
             if module.name.lower() == moduleName.lower():
                 if len(splitMessage) >= 2:
                     if splitMessage[1] == "/help":
-                        if len(splitMessage) >= 3:
-                            core.send_message(message, module.help(splitMessage[2]))
+                        if (len(splitMessage) >= 3) and (splitMessage[2][0] == "/"):
+                            found = False
+                            for command in module.commands:
+                                if command.name == splitMessage[2]:
+                                    found = True
+                                    command.handle(message, "/help")
+                                    break
+                            if not found:
+                                core.send_message(message, module, "I don't have such command")
                         else:
-                            core.send_message(message, module.help())
+                            core.send_message(message, module, f"{module.helpStr}\nThere's all commands from this module:\n{module.get_command_list_as_str()}")
                     else:
                         message.text = message.text.removeprefix(f"@{moduleName} ")
                         module.handle_message(message)
@@ -44,18 +55,21 @@ def handle(message: telebot.types.Message):
         reply: str = ""
 
         if (len(splitMessage) >= 2) and (splitMessage[1][0] == '/'):
+            found = False
             for module in modules:
-                if module.help(splitMessage[1])[0] != '!':
-                    reply += f"from {module.name}: {module.help(splitMessage[1])}\n"
+                for command in module.commands:
+                    if splitMessage[1] == command.name:
+                        command.handle(message, '/help')
+                        found = True
+            if not found:
+                core.send_message(message, coreModule, "Can't find such command")
         else:
+            reply += "You can get help for each module with command [@[ModuleName] /help]\nThere's all installed modules:\n"
             for module in modules:
-                reply += f"@{module.name} /help\n"
+                reply += f"@{module.name}\n"
 
-        reply.removesuffix('\n')
-        if reply != "":
-            core.send_message(message, reply)
-        else:
-            core.send_message(message, "Can't find help for this command")
+            reply.removesuffix('\n')
+            core.send_message(message, coreModule, reply)
 
     else:
         for module in modules:
@@ -70,11 +84,7 @@ for i in range(0, dirs.__len__()):
     modules += [importlib.import_module(f'Modules.{dirs[i]}.main').get_module(core)]
 
 for module in modules:
-    print(f"Module {module.name} initialized with commands: {module.help('')}")
-
-
-
-
+    print(f"Module {module.name} initialized with commands: {module.get_command_list_as_str()}")
 
 
 bot.infinity_polling()
