@@ -1,8 +1,8 @@
 import telebot
-from every_bot import Module, Core
+from every_bot import BotModule, Core
 
 
-class MathMod(Module):
+class MathMod(BotModule):
     name = "MathMod"
     helpStr = "This module can do some math operations for you"
     bot: telebot.TeleBot

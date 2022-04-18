@@ -3,7 +3,7 @@ sys.path.append('./SitePackages')
 import telebot
 import os
 import importlib
-from every_bot import Module, Core
+from every_bot import BotModule, Core
 
 dirFiles = os.listdir('Modules')
 fullPaths = map(lambda name: os.path.join('Modules', name), dirFiles)
@@ -16,10 +16,10 @@ bot: telebot.TeleBot
 bot = core.bot
 bot.parse_mode = None
 
-modules: [Module] = []
+modules: [BotModule] = []
 
 
-coreModule = Module(core)
+coreModule = BotModule(core)
 coreModule.name = "Core"
 
 

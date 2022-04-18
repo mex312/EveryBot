@@ -1,1 +1,1 @@
-from every_bot.types import Module, Core
+from every_bot.types import BotModule, Core, Command

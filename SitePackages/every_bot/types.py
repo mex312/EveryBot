@@ -84,7 +84,7 @@ class Command(Unit):
             self.helpHandler(message, self.docStr)
 
 
-class Module(Unit):
+class BotModule(Unit):
     core: Core
     name: str = "NAMELESS"
     helpStr: str = "IT IS MODULE"
