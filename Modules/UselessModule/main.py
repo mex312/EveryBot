@@ -1,11 +1,12 @@
 import telebot
-from every_bot import BotModule, Core
+from every_bot import *
 
 
 class MathMod(BotModule):
     name = "MathMod"
     helpStr = "This module can do some math operations for you"
     bot: telebot.TeleBot
+    commands: list[Command] = []
 
     def hello_handler(self, message: telebot.types.Message, args: list[str]):
         self.core.send_message(message, self, f"Hello, {message.from_user.username}!")

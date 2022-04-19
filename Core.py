@@ -1,8 +1,10 @@
+import copy
 import sys
 sys.path.append('./SitePackages')
 import telebot
 import os
 import importlib
+from math import *
 from every_bot import BotModule, Core
 
 dirFiles = os.listdir('Modules')
@@ -22,9 +24,36 @@ modules: [BotModule] = []
 coreModule = BotModule(core)
 coreModule.name = "Core"
 
+usersModuleListPage: dict[str: int] = {}
+usersModuleListLastMessage: dict[str: telebot.types.Message] = {}
+
+
+def create_modules_list_keyboard(page: int) -> telebot.types.InlineKeyboardMarkup:
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    buttons: list[telebot.types.InlineKeyboardButton] = []
+    for i in range(page * 10, (page+1) * 10):
+        if (i < len(modules)) and (i >= 0):
+            buttons += [telebot.types.InlineKeyboardButton(text=f"@{modules[i].name}", callback_data='@' + modules[i].name)]
+        else:
+            buttons += [telebot.types.InlineKeyboardButton(text=" ", callback_data="NoneOnModuleList")]
+        if i % 2 == 1:
+            keyboard.add(*buttons)
+            buttons = []
+    buttons: list[telebot.types.InlineKeyboardButton] = []
+    if page > 0:
+        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleList{page - 1}")]
+    else:
+        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleList{page}")]
+    if page < ceil(float(len(modules)) / 10) - 1:
+        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleList{page + 1}")]
+    else:
+        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleList{page}")]
+    keyboard.add(*buttons)
+    return keyboard
+
 
 @bot.message_handler()
-def handle(message: telebot.types.Message):
+def handle_any_message(message: telebot.types.Message):
     splitMessage = message.text.split(' ')
 
     if message.text[0] == '@':
@@ -71,10 +100,48 @@ def handle(message: telebot.types.Message):
             reply.removesuffix('\n')
             core.send_message(message, coreModule, reply)
 
+            usersModuleListLastMessage[message.from_user.username] = bot.send_message(message.chat.id, "CHOOSE", reply_markup=create_modules_list_keyboard(0))
+            usersModuleListPage[message.from_user.username] = 0
+
     else:
         for module in modules:
             module.handle_message(message)
 
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call: telebot.types.CallbackQuery):
+    if call.data == "NextPageOnModuleList":
+        if usersModuleListPage[call.from_user.username] < ceil(float(len(modules)) / 10) - 1:
+            usersModuleListPage[call.from_user.username] += 1
+        keboard: telebot.types.InlineKeyboardMarkup = create_modules_list_keyboard(usersModuleListPage[call.from_user.username])
+        message: telebot.types.Message = usersModuleListLastMessage[call.from_user.username]
+        try:
+            bot.edit_message_reply_markup(message.chat.id, message.id, reply_markup=keboard)
+        except:
+            pass
+        bot.answer_callback_query(call.id)
+
+    elif call.data == "PrevPageOnModuleList":
+        if usersModuleListPage[call.from_user.username] > 0:
+            usersModuleListPage[call.from_user.username] -= 1
+        keboard: telebot.types.InlineKeyboardMarkup = create_modules_list_keyboard(usersModuleListPage[call.from_user.username])
+        message: telebot.types.Message = usersModuleListLastMessage[call.from_user.username]
+        try:
+            bot.edit_message_reply_markup(message.chat.id, message.id, reply_markup=keboard)
+        except:
+            pass
+        bot.answer_callback_query(call.id)
+
+    elif call.data == "NoneOnModuleList":
+        bot.answer_callback_query(call.id)
+
+    else:
+        for module in modules:
+            if call.data == '@' + module.name:
+                message = copy.copy(call.message)
+                message.text = f"@{module.name} /help"
+                handle_any_message(message)
+        bot.answer_callback_query(call.id)
 
 for file in fullPaths:
     if os.path.isdir(file): dirs.append(file.removeprefix('Modules\\'))
