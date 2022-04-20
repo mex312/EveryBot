@@ -5,7 +5,10 @@ import telebot
 import os
 import importlib
 from math import *
-from every_bot import BotModule, Core
+from every_bot import *
+
+MODULE_LIST_SIZE: int = 10
+MODULE_COMMANDS_LIST_SIZE: int = 10
 
 dirFiles = os.listdir('Modules')
 fullPaths = map(lambda name: os.path.join('Modules', name), dirFiles)
@@ -24,16 +27,13 @@ modules: [BotModule] = []
 coreModule = BotModule(core)
 coreModule.name = "Core"
 
-usersModuleListPage: dict[str: int] = {}
-usersModuleListLastMessage: dict[str: telebot.types.Message] = {}
-
 
 def create_modules_list_keyboard(page: int) -> telebot.types.InlineKeyboardMarkup:
     keyboard = telebot.types.InlineKeyboardMarkup()
     buttons: list[telebot.types.InlineKeyboardButton] = []
-    for i in range(page * 10, (page+1) * 10):
+    for i in range(page * MODULE_LIST_SIZE, (page+1) * MODULE_LIST_SIZE):
         if (i < len(modules)) and (i >= 0):
-            buttons += [telebot.types.InlineKeyboardButton(text=f"@{modules[i].name}", callback_data='@' + modules[i].name)]
+            buttons += [telebot.types.InlineKeyboardButton(text=f"@{modules[i].name}", callback_data=f"@{modules[i].name}:/help")]
         else:
             buttons += [telebot.types.InlineKeyboardButton(text=" ", callback_data="NoneOnModuleList")]
         if i % 2 == 1:
@@ -41,13 +41,38 @@ def create_modules_list_keyboard(page: int) -> telebot.types.InlineKeyboardMarku
             buttons = []
     buttons: list[telebot.types.InlineKeyboardButton] = []
     if page > 0:
-        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleList{page - 1}")]
+        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleList:{page - 1}")]
     else:
-        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleList{page}")]
-    if page < ceil(float(len(modules)) / 10) - 1:
-        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleList{page + 1}")]
+        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleList:{page}")]
+    if page < ceil(float(len(modules)) / MODULE_LIST_SIZE) - 1:
+        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleList:{page + 1}")]
     else:
-        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleList{page}")]
+        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleList:{page}")]
+    keyboard.add(*buttons)
+    return keyboard
+
+
+def create_commands_list_keyboard(page: int, module: BotModule) -> telebot.types.InlineKeyboardMarkup:
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    buttons: list[telebot.types.InlineKeyboardButton] = []
+    commands: list[str] = module.get_command_list()
+    for i in range(page * MODULE_COMMANDS_LIST_SIZE, (page+1) * MODULE_COMMANDS_LIST_SIZE):
+        if (i < len(commands)) and (i >= 0):
+            buttons += [telebot.types.InlineKeyboardButton(text=commands[i], callback_data=f"@{module.name}:/help {commands[i]}")]
+        else:
+            buttons += [telebot.types.InlineKeyboardButton(text=" ", callback_data="NoneOnModuleCommandsList")]
+        if i % 2 == 1:
+            keyboard.add(*buttons)
+            buttons = []
+    buttons: list[telebot.types.InlineKeyboardButton] = []
+    if page > 0:
+        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleCommandsList:{page - 1}@{module.name}")]
+    else:
+        buttons += [telebot.types.InlineKeyboardButton(text="<---", callback_data=f"SetPageOnModuleCommandsList:{page}@{module.name}")]
+    if page < ceil(float(len(commands)) / MODULE_COMMANDS_LIST_SIZE) - 1:
+        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleCommandsList:{page + 1}@{module.name}")]
+    else:
+        buttons += [telebot.types.InlineKeyboardButton(text="--->", callback_data=f"SetPageOnModuleCommandsList:{page}@{module.name}")]
     keyboard.add(*buttons)
     return keyboard
 
@@ -74,6 +99,7 @@ def handle_any_message(message: telebot.types.Message):
                                 core.send_message(message, module, "I don't have such command")
                         else:
                             core.send_message(message, module, f"{module.helpStr}\nThere's all commands from this module:\n{module.get_command_list_as_str()}")
+                            bot.send_message(message.chat.id, f"@{module.name}: Choose command to get help", reply_markup=create_commands_list_keyboard(0, module))
                     else:
                         message.text = message.text.removeprefix(f"@{moduleName} ")
                         module.handle_message(message)
@@ -100,8 +126,7 @@ def handle_any_message(message: telebot.types.Message):
             reply.removesuffix('\n')
             core.send_message(message, coreModule, reply)
 
-            usersModuleListLastMessage[message.from_user.username] = bot.send_message(message.chat.id, "CHOOSE", reply_markup=create_modules_list_keyboard(0))
-            usersModuleListPage[message.from_user.username] = 0
+            bot.send_message(message.chat.id, "@Core: Choose module to get help", reply_markup=create_modules_list_keyboard(0))
 
     else:
         for module in modules:
@@ -110,24 +135,10 @@ def handle_any_message(message: telebot.types.Message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call: telebot.types.CallbackQuery):
-    if call.data == "NextPageOnModuleList":
-        if usersModuleListPage[call.from_user.username] < ceil(float(len(modules)) / 10) - 1:
-            usersModuleListPage[call.from_user.username] += 1
-        keboard: telebot.types.InlineKeyboardMarkup = create_modules_list_keyboard(usersModuleListPage[call.from_user.username])
-        message: telebot.types.Message = usersModuleListLastMessage[call.from_user.username]
+    if call.data.find("SetPageOnModuleList:") != -1:
+        keyboard: telebot.types.InlineKeyboardMarkup = create_modules_list_keyboard(int(call.data.removeprefix("SetPageOnModuleList:")))
         try:
-            bot.edit_message_reply_markup(message.chat.id, message.id, reply_markup=keboard)
-        except:
-            pass
-        bot.answer_callback_query(call.id)
-
-    elif call.data == "PrevPageOnModuleList":
-        if usersModuleListPage[call.from_user.username] > 0:
-            usersModuleListPage[call.from_user.username] -= 1
-        keboard: telebot.types.InlineKeyboardMarkup = create_modules_list_keyboard(usersModuleListPage[call.from_user.username])
-        message: telebot.types.Message = usersModuleListLastMessage[call.from_user.username]
-        try:
-            bot.edit_message_reply_markup(message.chat.id, message.id, reply_markup=keboard)
+            bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=keyboard)
         except:
             pass
         bot.answer_callback_query(call.id)
@@ -135,13 +146,33 @@ def handle_callback(call: telebot.types.CallbackQuery):
     elif call.data == "NoneOnModuleList":
         bot.answer_callback_query(call.id)
 
-    else:
+    elif call.data.find("SetPageOnModuleCommandsList:") != -1:
+        splitData = call.data.removeprefix("SetPageOnModuleCommandsList:").split('@')
         for module in modules:
-            if call.data == '@' + module.name:
-                message = copy.copy(call.message)
-                message.text = f"@{module.name} /help"
-                handle_any_message(message)
+            if module.name.lower == splitData[1].lower():
+                keyboard = create_commands_list_keyboard(int(splitData[0]), module)
+                try:
+                    bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=keyboard)
+                except:
+                    pass
+                break
         bot.answer_callback_query(call.id)
+
+    else:
+        if call.data[0] == '@':
+            if (len(call.data.split(':')) >= 2) and (call.data.split(':')[1].split(' ')[0] == "/help"):
+                message = copy.copy(call.message)
+                message.text = f"{call.data.split(':')[0]} {call.data.split(':')[1]}"
+                handle_any_message(message)
+            else:
+                for module in modules:
+                    if module.name == call.data.split(':')[0].removeprefix('@'):
+                        module.handle_callback_query(call)
+        else:
+            for module in modules:
+                module.handle_callback_query(call)
+        bot.answer_callback_query(call.id)
+
 
 for file in fullPaths:
     if os.path.isdir(file): dirs.append(file.removeprefix('Modules\\'))
@@ -153,5 +184,4 @@ for i in range(0, dirs.__len__()):
 for module in modules:
     print(f"Module {module.name} initialized with commands: {module.get_command_list_as_str()}")
 
-
-bot.infinity_polling()
+bot.polling()
