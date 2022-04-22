@@ -1,4 +1,5 @@
 import copy
+import fileinput
 import sys
 sys.path.append('./SitePackages')
 import telebot
@@ -16,7 +17,9 @@ fullPaths = map(lambda name: os.path.join('Modules', name), dirFiles)
 dirs = []
 files = []
 
-core = Core('5105437710:AAHItsntSLpyZNb2fa4JHjXg0LFa9fiWCTU')
+tokenFile = open("BotToken.txt", 'r')
+core = Core(tokenFile.read())
+tokenFile.close()
 bot: telebot.TeleBot
 bot = core.bot
 bot.parse_mode = None

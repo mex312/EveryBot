@@ -1,4 +1,5 @@
 import telebot
+from telebot.types import *
 from builtins import *
 
 
@@ -17,8 +18,8 @@ class Core(Unit):
     def delete_message(self, message: telebot.types.Message):
         self.bot.delete_message(message_id=message.id, chat_id=message.chat.id)
 
-    def send_message(self, message: telebot.types.Message, module: Unit, text: str):
-        self.bot.send_message(chat_id=message.chat.id, text=f"@{module.name}: {text}")
+    def send_message(self, message: telebot.types.Message, module: Unit, text: str, reply_markup: Union[InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, ForceReply, None] = None):
+        self.bot.send_message(chat_id=message.chat.id, text=f"@{module.name}: {text}", reply_markup=reply_markup)
 
     def add_module(self, module: Unit):
         self.modulesList += [module]
